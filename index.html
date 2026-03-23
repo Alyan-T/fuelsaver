@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Optimizer</title>
+    <link rel="icon" href="icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --pkr-red: #d90429; --pkr-dark: #2b2d42; }
+        body { background: #f4f7f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .navbar { background: var(--pkr-dark); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .nav-pills .nav-link { color: var(--pkr-dark); font-weight: 500; }
+        .nav-pills .nav-link.active { background-color: var(--pkr-red); color: white; }
+        .btn-primary { background-color: var(--pkr-red); border: none; }
+        .btn-primary:hover { background-color: #b90422; }
+        .history-item { border-left: 4px solid var(--pkr-red); background: #fff; margin-bottom: 10px; padding: 10px; border-radius: 4px; }
+        .tip-icon { font-size: 1.5rem; color: var(--pkr-red); margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark mb-4">
+    <div class="container">
+        <span class="navbar-brand mb-0 h1">
+            <i class="fa-solid fa-gas-pump"></i>
+            Fuel Optimizer</span>
+        <span class="text-white-50 small"></span>
+    </div>
+</nav>
+
+<div class="container pb-5">
+    <ul class="nav nav-pills mb-4 justify-content-center flex-wrap gap-2" id="pills-tab" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-refill">Refill & Compare</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-avg">Average Tracker</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-tips">Tips & Additives</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-logs">History</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-refill">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card p-4">
+                        <h5 class="mb-3">Calculate Refill</h5>
+                        
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">Select Vehicle</label>
+                            <select id="carSelect" class="form-select">
+                                </select>
+                        </div>
+                        
+                        <div class="mb-4 bg-light p-3 rounded">
+                            <label class="form-label small fw-bold">Dashboard Fuel Bars (Out of 10)</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="range" class="form-range flex-grow-1" id="digitalGauge" min="0" max="10" step="1" value="3" oninput="updateGaugePoints()">
+                                <span class="badge bg-dark fs-5" id="gaugePointLabel" style="min-width: 65px;">3 / 10</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mt-1 px-1">
+                                <span>0 (E)</span>
+                                <span>5 (1/2)</span>
+                                <span>10 (F)</span>
+                            </div>
+                            <div class="text-center mt-2 text-primary fw-bold small" id="approxLitersText">
+                                ~0.0L currently in tank
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <label class="small fw-bold">Super Price (PKR)</label>
+                                <input type="number" id="pSuper" class="form-control" value="321">
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold text-danger">High Octane (PKR)</label>
+                                <input type="number" id="pHobc" class="form-control" value="610">
+                            </div>
+                        </div>
+                        <button onclick="calculateMix()" class="btn btn-primary w-100 py-2 fw-bold">Get Optimal Mix</button>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card p-4 h-100 border-start border-4 border-danger">
+                        <h5>Refill Summary</h5>
+                        <div id="refillResults" class="mt-3">
+                            <p class="text-muted">Adjust the fuel gauge and hit calculate to see your optimal mix.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-avg">
+            <div class="card p-4 mx-auto" style="max-width: 500px;">
+                <h5 class="mb-3">Calculate Fuel Average</h5>
+                <div class="mb-3">
+                    <label class="form-label">KMs Driven (Trip A)</label>
+                    <input type="number" id="tripKms" class="form-control" placeholder="e.g. 450">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Liters Poured on Refill</label>
+                    <input type="number" id="refillLiters" class="form-control" placeholder="e.g. 35">
+                </div>
+                <button onclick="calcAverage()" class="btn btn-primary w-100">Calculate & Save Average</button>
+                <div id="avgDisp" class="mt-4 text-center d-none p-3 bg-light rounded">
+                    <p class="mb-1 text-muted">Your Average is:</p>
+                    <h2 class="text-success mb-0"><span id="resAvg">0</span> <small class="fs-5">KM/L</small></h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-tips">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card p-4 h-100">
+                        <h5 class="text-success border-bottom pb-2">🍃 Fuel Efficiency Tips</h5>
+                        <ul class="list-group list-group-flush mt-3">
+                            <li class="list-group-item px-0"><strong>Tire Pressure:</strong> Keep tires between 32-35 PSI. Under-inflated tires increase road resistance and destroy fuel economy.</li>
+                            <li class="list-group-item px-0"><strong>The CVT Glide:</strong> In modern automatics (like Civic/Yaris), keep RPMs below 2,000. Accelerate smoothly and let the CVT belt do the work.</li>
+                            <li class="list-group-item px-0"><strong>AC ECON Mode:</strong> Use the ECON button. It relaxes the AC compressor cycle, saving roughly 1-2 KM/L in city traffic.</li>
+                            <li class="list-group-item px-0"><strong>Coasting:</strong> When approaching a red light (e.g., on Canal Road), lift your foot off the accelerator early. The engine cuts fuel injection almost entirely while coasting.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card p-4 h-100">
+                        <h5 class="text-danger border-bottom pb-2">🛢️ Note on Octane Boosters</h5>
+                        <p class="mt-2 small text-muted">Octane boosters are chemical additives poured into your fuel tank to raise the RON rating of standard Super petrol. They prevent engine knocking in high-compression or turbo engines.</p>
+                        
+                        <h6 class="fw-bold mt-3">⚠️ The Danger of Overuse:</h6>
+                        <p class="small">Most boosters use MMT (Methylcyclopentadienyl manganese tricarbonyl). Frequent use leaves an orange/brown rust-like deposit on spark plugs and oxygen sensors, eventually clogging the Catalytic Converter. <strong>Only use them as an emergency if mixing HOBC is impossible and your engine is knocking.</strong></p>
+
+                        <h6 class="fw-bold mt-3">🏆 Best Brands in Pakistan:</h6>
+                        <ul class="small">
+                            <li><strong>Liqui Moly Octane Plus:</strong> The gold standard. Very reliable, but expensive.</li>
+                            <li><strong>STP Octane Booster:</strong> Widely available at PSO/Shell pumps. Good for mild knocking.</li>
+                            <li><strong>Flamingo / Getsun:</strong> Budget options. Use only if branded ones are unavailable.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-logs">
+            <div class="card p-4 mx-auto" style="max-width: 600px;">
+                <h5 class="mb-3 d-flex justify-content-between align-items-center">
+                    Saved Records
+                    <button onclick="clearLogs()" class="btn btn-sm btn-outline-danger">Clear All</button>
+                </h5>
+                <div id="logList">
+                    <p class="text-muted text-center mt-4">No logs found yet. Calculate an average to save it here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. CAR DATABASE
+    const carDatabase = [
+        // Honda
+        { id: "civic15", name: "Honda Civic 1.5 Turbo (Oriel/RS)", tank: 47, mix: 0.4 },
+        { id: "civic18", name: "Honda Civic 1.8 (Oriel/X)", tank: 47, mix: 0.15 },
+        { id: "civic_reborn", name: "Honda Civic 1.8 (Reborn)", tank: 50, mix: 0.1 },
+        { id: "city", name: "Honda City 1.2/1.5", tank: 40, mix: 0.1 },
+
+        // Toyota
+        { id: "grande", name: "Toyota Corolla Grande 1.8", tank: 55, mix: 0.15 },
+        { id: "yaris", name: "Toyota Yaris 1.3/1.5", tank: 42, mix: 0.1 },
+
+        // Suzuki
+        { id: "swift12", name: "Suzuki Swift 1.2 (GL/GLX)", tank: 37, mix: 0.15 },
+        { id: "alto", name: "Suzuki Alto 660cc", tank: 27, mix: 0.0 },
+
+        // Crossovers & SUVs
+        { id: "havalh6", name: "Haval H6 1.5 Turbo", tank: 55, mix: 0.4 },
+        { id: "jaecooj7", name: "Jaecoo J7 1.6 TGDI", tank: 51, mix: 0.4 },
+        { id: "old_kia_hyundai", name: "Kia Sportage/Tucson (2019-2025)", tank: 62, mix: 0.2 },
+        { id: "new_kia_hyundai", name: "Kia Sportage/Tucson (2025-Present)", tank: 52, mix: 0.4 },
+        
+        // Premium/German
+        { id: "bmwm3", name: "BMW M3", tank: 59, mix: 0.8 }
+    ];
+
+    const carSelect = document.getElementById('carSelect');
+    carDatabase.forEach(car => {
+        let opt = document.createElement('option');
+        opt.value = car.id;
+        opt.innerHTML = car.name;
+        carSelect.appendChild(opt);
+    });
+
+    carSelect.addEventListener('change', updateGaugePoints);
+
+    // 2. 10-POINT GAUGE LOGIC
+    function updateGaugePoints() {
+        const points = document.getElementById('digitalGauge').value;
+        const carId = document.getElementById('carSelect').value;
+        const car = carDatabase.find(c => c.id === carId);
+        
+        const approxLiters = (car.tank * (points / 10)).toFixed(1);
+        
+        document.getElementById('gaugePointLabel').innerText = `${points} / 10`;
+        document.getElementById('approxLitersText').innerText = `~${approxLiters}L currently in tank`;
+    }
+
+    // 3. REFILL & COMPARE LOGIC
+    function calculateMix() {
+        const carId = document.getElementById('carSelect').value;
+        const car = carDatabase.find(c => c.id === carId);
+        
+        const points = parseFloat(document.getElementById('digitalGauge').value);
+        const pS = parseFloat(document.getElementById('pSuper').value);
+        const pH = parseFloat(document.getElementById('pHobc').value);
+        const pS_Jan = 253;
+
+        const currentLiters = car.tank * (points / 10);
+        const needed = car.tank - currentLiters;
+        
+        if (needed <= 0) {
+            document.getElementById('refillResults').innerHTML = `<div class="alert alert-success mt-3">Your tank is already full!</div>`;
+            return;
+        }
+
+        const hobcNeeded = needed * car.mix;
+        const superNeeded = needed - hobcNeeded;
+        
+        const nowCost = (hobcNeeded * pH) + (superNeeded * pS);
+        const janCost = needed * pS_Jan;
+
+        document.getElementById('refillResults').innerHTML = `
+            <div class="alert alert-secondary">
+                <strong>Estimated Refill Cost:</strong> Rs. ${Math.round(nowCost).toLocaleString()}<br>
+                <small>Cost in Jan 2026: Rs. ${Math.round(janCost).toLocaleString()}</small>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-danger fs-6 p-2 mb-2 w-100 text-start">Pump ${hobcNeeded.toFixed(1)}L High Octane</span><br>
+                <span class="badge bg-success fs-6 p-2 w-100 text-start">Pump ${superNeeded.toFixed(1)}L Super</span>
+            </div>
+            <p class="mt-3 text-primary small fw-bold">*Calculated for optimal performance in ${car.name}</p>
+        `;
+    }
+
+    // 4. FUEL AVERAGE & LOCAL STORAGE LOGIC
+    function calcAverage() {
+        const km = parseFloat(document.getElementById('tripKms').value);
+        const lt = parseFloat(document.getElementById('refillLiters').value);
+        
+        if (km > 0 && lt > 0) {
+            const avg = (km / lt).toFixed(2);
+            document.getElementById('resAvg').innerText = avg;
+            document.getElementById('avgDisp').classList.remove('d-none');
+            
+            let logs = JSON.parse(localStorage.getItem('fuelLogs')) || [];
+            logs.unshift({
+                date: new Date().toLocaleDateString(),
+                avg: avg,
+                details: `${km}km / ${lt}L`
+            });
+            localStorage.setItem('fuelLogs', JSON.stringify(logs.slice(0, 15)));
+            renderLogs();
+        }
+    }
+
+    function renderLogs() {
+        const logs = JSON.parse(localStorage.getItem('fuelLogs')) || [];
+        const container = document.getElementById('logList');
+        if (logs.length === 0) return;
+
+        container.innerHTML = logs.map(l => `
+            <div class="history-item">
+                <div class="d-flex justify-content-between">
+                    <strong class="text-danger fs-5">${l.avg} KM/L</strong>
+                    <span class="text-muted small mt-1">${l.date}</span>
+                </div>
+                <small class="text-secondary">${l.details}</small>
+            </div>
+        `).join('');
+    }
+
+    function clearLogs() {
+        if(confirm("Are you sure you want to clear your fuel history?")) {
+            localStorage.removeItem('fuelLogs');
+            location.reload();
+        }
+    }
+
+    window.onload = function() {
+        updateGaugePoints();
+        renderLogs();
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
